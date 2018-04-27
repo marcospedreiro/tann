@@ -1,0 +1,18 @@
+# gitignore for tann
+
+# system
+.DS_Store
+
+# ide
+.idea
+.vscode
+
+# bin
+bin/*
+
+# logs
+*.log
+
+# secrets
+*.pem
+*.pub
