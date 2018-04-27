@@ -79,10 +79,24 @@ func (t *Tensor) Transpose() *Tensor {
 	transpose := New(t.Columns, t.Rows)
 
 	for i := 0; i < t.Rows; i++ {
-		for j := 0; j < t.Rows; j++ {
+		for j := 0; j < t.Columns; j++ {
 			transpose.Data[j][i] = t.Data[i][j]
 		}
 	}
 
 	return transpose
+}
+
+// GetColumn c of tensor
+func (t *Tensor) GetColumn(c int) ([]float64, error) {
+	if c < 0 || c >= t.Columns {
+		return nil, fmt.Errorf("c (%d) out of bounds either < 0 or >= Columns (%d)", c, t.Columns)
+	}
+
+	column := make([]float64, 0)
+	for i := 0; i < t.Rows; i++ {
+		column = append(column, t.Data[i][c])
+	}
+	return column, nil
+
 }

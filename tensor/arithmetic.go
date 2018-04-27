@@ -172,7 +172,13 @@ func (t *Tensor) MultiplyTensor(b *Tensor) (*Tensor, error) {
 
 	for i := 0; i < productMatrix.Rows; i++ {
 		for j := 0; j < productMatrix.Columns; j++ {
-			productMatrix.Data[i][j], err = DotProduct(t.Data[i], b.Data[:][j])
+
+			jthColumnOfB, err := b.GetColumn(j)
+			if err != nil {
+				return nil, err
+			}
+
+			productMatrix.Data[i][j], err = DotProduct(t.Data[i], jthColumnOfB)
 			if err != nil {
 				return nil, fmt.Errorf("failure calculating dot product during matrix multiplication: %s", err.Error())
 			}
