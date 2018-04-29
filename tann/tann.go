@@ -27,7 +27,7 @@ func New(d int, n int) *Tann {
 
 	t := tensor.New(d, n)
 	for i := 0; i < d; i++ {
-		for j := 0; j < d; j++ {
+		for j := 0; j < n; j++ {
 			t.Data[i][j] = -1 + rand.Float64()*(1 - -1)
 		}
 	}
@@ -61,40 +61,40 @@ func (tn *Tann) Train(trainingInputs *tensor.Tensor, trainingOutputs *tensor.Ten
 	}
 
 	for i := 0; i < trainingIterations; i++ {
-
 		out, err := tn.Think(trainingInputs)
 		if err != nil {
 			return err
 		}
 
-		tempTrainErr := tensor.New(trainingOutputs.Rows, trainingOutputs.Columns)
-		tempTrainErr.Data = trainingOutputs.Data
+		trainErr := tensor.New(trainingOutputs.Rows, trainingOutputs.Columns)
+		trainErr.Data = trainingOutputs.Data
 
-		err = tempTrainErr.SubtractTensor(out)
+		err = trainErr.SubtractTensor(out)
 		if err != nil {
 			return err
 		}
 
-		for r := 0; r < trainingInputs.Rows; r++ {
+		trainErrMultiplied := tensor.New(tn.SynapticWeights.Rows, 0)
+		for r := 0; r < tn.SynapticWeights.Rows; r++ {
+			trainErrMultiplied.Data[r] = append(trainErrMultiplied.Data[r], trainErr.Data[r][0]*tn.sigmoidDerivative(out.Data[r][0]))
+		}
+		trainErrMultiplied.Columns = 1
 
-			tempMulti := tensor.New(tempTrainErr.Rows, tempTrainErr.Columns)
-			tempMulti.Data = tempTrainErr.Data
-
-			tempMulti.MultiplyScalar(tn.sigmoidDerivative(out.Data[r][0]))
-
-			tempMultiTranspose := tempMulti.Transpose()
-
-			adjustment, err := tensor.DotProduct(trainingInputs.Data[r], tempMultiTranspose.Data[0])
-			if err != nil {
-				return err
-			}
-
-			for c := 0; c < tn.SynapticWeights.Columns; c++ {
-				tn.SynapticWeights.Data[r][c] = tn.SynapticWeights.Data[r][c] + adjustment
-			}
-
+		trainingInputsTranspose := trainingInputs.Transpose()
+		adjustment, err := trainingInputsTranspose.MultiplyTensor(trainErrMultiplied)
+		if err != nil {
+			return err
 		}
 
+		for ra := 0; ra < tn.SynapticWeights.Rows; ra++ {
+			synWeightRow := tn.SynapticWeights.Data[ra]
+
+			adjustedRow := make([]float64, tn.SynapticWeights.Columns)
+			for c := 0; c < tn.SynapticWeights.Columns; c++ {
+				adjustedRow[c] = synWeightRow[c] + adjustment.Data[c][0]
+			}
+			tn.SynapticWeights.Data[ra] = adjustedRow
+		}
 	}
 
 	return nil
@@ -111,15 +111,18 @@ func (tn *Tann) Think(inputs *tensor.Tensor) (*tensor.Tensor, error) {
 		return nil, fmt.Errorf("input dimensions (%d,%d) do not match synaptic weight dimensions (%d,%d)", inputs.Rows, inputs.Columns, tn.SynapticWeights.Rows, tn.SynapticWeights.Columns)
 	}
 
-	thoughts := tensor.New(inputs.Rows, 1)
+	thoughts := tensor.New(inputs.Rows, 0)
 
 	for i := 0; i < inputs.Rows; i++ {
 		dotprod, err := tensor.DotProduct(inputs.Data[i], tn.SynapticWeights.Data[i])
 		if err != nil {
 			return nil, err
 		}
-		thoughts.Data[i][0] = tn.sigmoid(dotprod)
+		// currently Rx1, may need to do 1xR
+		thoughts.Data[i] = append(thoughts.Data[i], tn.sigmoid(dotprod))
 	}
+
+	thoughts.Columns++
 
 	return thoughts, nil
 }
