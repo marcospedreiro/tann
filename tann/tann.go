@@ -80,6 +80,8 @@ func (tn *Tann) Train(trainingInputs *tensor.Tensor, trainingOutputs *tensor.Ten
 		}
 		trainErrMultiplied.Columns = 1
 
+		fmt.Println("trainErrMultiplied: ", trainErrMultiplied.Data)
+
 		trainingInputsTranspose := trainingInputs.Transpose()
 		adjustment, err := trainingInputsTranspose.MultiplyTensor(trainErrMultiplied)
 		if err != nil {

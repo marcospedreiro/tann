@@ -32,7 +32,7 @@ func main() {
 
 	fmt.Printf("synaptic weights before training:\n%v\n", tnn.SynapticWeights.Data)
 
-	err := tnn.Train(trainingData, trainingAnswers, 10000)
+	err := tnn.Train(trainingData, trainingAnswers, 10) // 10000)
 	if err != nil {
 		fmt.Println(err)
 	}
