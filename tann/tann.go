@@ -21,13 +21,13 @@ type Tann struct {
 }
 
 // New returns a new Tann of DxN with a RandomSeed and intial SynapticWeights
-func New(d int, n int) *Tann {
-
+func New(c int) *Tann {
+	rows := 1
 	rseed := rand.Float64()
 
-	t := tensor.New(d, n)
-	for i := 0; i < d; i++ {
-		for j := 0; j < n; j++ {
+	t := tensor.New(rows, c)
+	for i := 0; i < rows; i++ {
+		for j := 0; j < c; j++ {
 			t.Data[i][j] = -1 + rand.Float64()*(1 - -1)
 		}
 	}
@@ -53,11 +53,11 @@ func (tn *Tann) sigmoidDerivative(x float64) float64 {
 // Train the neural network on the training set for a determined number of iterations
 func (tn *Tann) Train(trainingInputs *tensor.Tensor, trainingOutputs *tensor.Tensor, trainingIterations int) error {
 
-	if trainingInputs.Rows != tn.SynapticWeights.Rows || trainingInputs.Columns != tn.SynapticWeights.Columns {
-		return fmt.Errorf("trainingInputs dimensions (%d,%d) do not match synaptic weight dimensions (%d,%d)", trainingInputs.Rows, trainingInputs.Columns, tn.SynapticWeights.Rows, tn.SynapticWeights.Columns)
+	if trainingOutputs.Rows != trainingInputs.Rows {
+		return fmt.Errorf("trainingOutputs rows (%d) do not match trainingInputs rows (%d)", trainingOutputs.Rows, trainingInputs.Rows)
 	}
-	if trainingOutputs.Rows != tn.SynapticWeights.Rows {
-		return fmt.Errorf("trainingOutputs rows (%d) do not match synaptic weight rows (%d)", trainingOutputs.Rows, tn.SynapticWeights.Rows)
+	if trainingInputs.Columns != tn.SynapticWeights.Columns {
+		return fmt.Errorf("trainingInputs columns (%d) do not match synaptic weight columns (%d)", trainingInputs.Columns, tn.SynapticWeights.Columns)
 	}
 
 	for i := 0; i < trainingIterations; i++ {
@@ -67,33 +67,45 @@ func (tn *Tann) Train(trainingInputs *tensor.Tensor, trainingOutputs *tensor.Ten
 		}
 
 		trainErr := tensor.New(trainingOutputs.Rows, trainingOutputs.Columns)
-		trainErr.Data = trainingOutputs.Data
+
+		// do a deep copy of data so the training output is not modified
+		DataCopy := make([][]float64, trainingOutputs.Rows)
+		for i := range trainingOutputs.Data {
+			DataCopy[i] = make([]float64, len(trainingOutputs.Data[i]))
+			copy(DataCopy[i], trainingOutputs.Data[i])
+		}
+
+		trainErr.Data = DataCopy
 
 		err = trainErr.SubtractTensor(out)
 		if err != nil {
 			return err
 		}
 
-		trainErrMultiplied := tensor.New(tn.SynapticWeights.Rows, 0)
-		for r := 0; r < tn.SynapticWeights.Rows; r++ {
+		trainErrMultiplied := tensor.New(trainingInputs.Rows, 0)
+		for r := 0; r < trainingInputs.Rows; r++ {
 			trainErrMultiplied.Data[r] = append(trainErrMultiplied.Data[r], trainErr.Data[r][0]*tn.sigmoidDerivative(out.Data[r][0]))
 		}
 		trainErrMultiplied.Columns = 1
 
 		trainingInputsTranspose := trainingInputs.Transpose()
+
 		adjustment, err := trainingInputsTranspose.MultiplyTensor(trainErrMultiplied)
 		if err != nil {
 			return err
 		}
 
-		for ra := 0; ra < tn.SynapticWeights.Rows; ra++ {
-			synWeightRow := tn.SynapticWeights.Data[ra]
-
-			adjustedRow := make([]float64, tn.SynapticWeights.Columns)
-			for c := 0; c < tn.SynapticWeights.Columns; c++ {
-				adjustedRow[c] = synWeightRow[c] + adjustment.Data[c][0]
+		/*trainErrMultipliedTranspose := trainErrMultiplied.Transpose()
+		adjustment := tensor.New(trainingInputsTranspose.Columns, 1)
+		for ct := 0; ct < trainingInputsTranspose.Rows; ct++ {
+			adjustment.Data[ct][0], err = tensor.DotProduct(trainingInputsTranspose.Data[ct], trainErrMultipliedTranspose.Data[0])
+			if err != nil {
+				return err
 			}
-			tn.SynapticWeights.Data[ra] = adjustedRow
+		} */
+
+		for c := 0; c < tn.SynapticWeights.Columns; c++ {
+			tn.SynapticWeights.Data[0][c] = tn.SynapticWeights.Data[0][c] + adjustment.Data[c][0]
 		}
 	}
 
@@ -107,18 +119,17 @@ func (tn *Tann) Think(inputs *tensor.Tensor) (*tensor.Tensor, error) {
 	if err != nil {
 		return nil, err
 	}
-	if inputs.Rows != tn.SynapticWeights.Rows || inputs.Columns != tn.SynapticWeights.Columns {
+	if inputs.Columns != tn.SynapticWeights.Columns {
 		return nil, fmt.Errorf("input dimensions (%d,%d) do not match synaptic weight dimensions (%d,%d)", inputs.Rows, inputs.Columns, tn.SynapticWeights.Rows, tn.SynapticWeights.Columns)
 	}
 
 	thoughts := tensor.New(inputs.Rows, 0)
 
 	for i := 0; i < inputs.Rows; i++ {
-		dotprod, err := tensor.DotProduct(inputs.Data[i], tn.SynapticWeights.Data[i])
+		dotprod, err := tensor.DotProduct(inputs.Data[i], tn.SynapticWeights.Data[0])
 		if err != nil {
 			return nil, err
 		}
-		// currently Rx1, may need to do 1xR
 		thoughts.Data[i] = append(thoughts.Data[i], tn.sigmoid(dotprod))
 	}
 
