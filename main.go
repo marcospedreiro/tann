@@ -40,10 +40,12 @@ func main() {
 
 	fmt.Printf("synaptic weights after training:\n%v\n", tnn.SynapticWeights.Data)
 
-	NewData := tensor.New(1, 3)
+	NewData := tensor.New(4, 3)
 	NewData.Data = [][]float64{
 		{1, 0, 0},
 		{0, 0, 0},
+		{0, 1, 1},
+		{1, 1, 1},
 	}
 
 	fmt.Printf("thinking about new data:\n%v\n", NewData.Data)
