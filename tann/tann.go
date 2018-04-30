@@ -80,12 +80,20 @@ func (tn *Tann) Train(trainingInputs *tensor.Tensor, trainingOutputs *tensor.Ten
 		}
 		trainErrMultiplied.Columns = 1
 
-		fmt.Println("trainErrMultiplied: ", trainErrMultiplied.Data)
-
 		trainingInputsTranspose := trainingInputs.Transpose()
-		adjustment, err := trainingInputsTranspose.MultiplyTensor(trainErrMultiplied)
-		if err != nil {
-			return err
+
+		// adjustment, err := trainingInputsTranspose.MultiplyTensor(trainErrMultiplied)
+		// if err != nil {
+		// 	return err
+		// }
+
+		trainErrMultipliedTranspose := trainErrMultiplied.Transpose()
+		adjustment := tensor.New(trainingInputsTranspose.Columns, 1)
+		for ct := 0; ct < trainingInputsTranspose.Rows; ct++ {
+			adjustment.Data[ct][0], err = tensor.DotProduct(trainingInputsTranspose.Data[ct], trainErrMultipliedTranspose.Data[0])
+			if err != nil {
+				return err
+			}
 		}
 
 		for c := 0; c < tn.SynapticWeights.Columns; c++ {
