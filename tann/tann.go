@@ -68,6 +68,7 @@ func (tn *Tann) Train(trainingInputs *tensor.Tensor, trainingOutputs *tensor.Ten
 
 		trainErr := tensor.New(trainingOutputs.Rows, trainingOutputs.Columns)
 
+		// do a deep copy of data so the training output is not modified
 		DataCopy := make([][]float64, trainingOutputs.Rows)
 		for i := range trainingOutputs.Data {
 			DataCopy[i] = make([]float64, len(trainingOutputs.Data[i]))
