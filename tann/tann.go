@@ -67,7 +67,14 @@ func (tn *Tann) Train(trainingInputs *tensor.Tensor, trainingOutputs *tensor.Ten
 		}
 
 		trainErr := tensor.New(trainingOutputs.Rows, trainingOutputs.Columns)
-		trainErr.Data = trainingOutputs.Data
+
+		DataCopy := make([][]float64, trainingOutputs.Rows)
+		for i := range trainingOutputs.Data {
+			DataCopy[i] = make([]float64, len(trainingOutputs.Data[i]))
+			copy(DataCopy[i], trainingOutputs.Data[i])
+		}
+
+		trainErr.Data = DataCopy
 
 		err = trainErr.SubtractTensor(out)
 		if err != nil {
