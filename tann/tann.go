@@ -82,19 +82,19 @@ func (tn *Tann) Train(trainingInputs *tensor.Tensor, trainingOutputs *tensor.Ten
 
 		trainingInputsTranspose := trainingInputs.Transpose()
 
-		// adjustment, err := trainingInputsTranspose.MultiplyTensor(trainErrMultiplied)
-		// if err != nil {
-		// 	return err
-		// }
+		adjustment, err := trainingInputsTranspose.MultiplyTensor(trainErrMultiplied)
+		if err != nil {
+			return err
+		}
 
-		trainErrMultipliedTranspose := trainErrMultiplied.Transpose()
+		/*trainErrMultipliedTranspose := trainErrMultiplied.Transpose()
 		adjustment := tensor.New(trainingInputsTranspose.Columns, 1)
 		for ct := 0; ct < trainingInputsTranspose.Rows; ct++ {
 			adjustment.Data[ct][0], err = tensor.DotProduct(trainingInputsTranspose.Data[ct], trainErrMultipliedTranspose.Data[0])
 			if err != nil {
 				return err
 			}
-		}
+		} */
 
 		for c := 0; c < tn.SynapticWeights.Columns; c++ {
 			tn.SynapticWeights.Data[0][c] = tn.SynapticWeights.Data[0][c] + adjustment.Data[c][0]
