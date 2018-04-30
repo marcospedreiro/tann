@@ -43,6 +43,7 @@ func main() {
 	NewData := tensor.New(1, 3)
 	NewData.Data = [][]float64{
 		{1, 0, 0},
+		{0, 0, 0},
 	}
 
 	fmt.Printf("thinking about new data:\n%v\n", NewData.Data)
